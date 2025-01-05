@@ -91,37 +91,60 @@ def perform_tasks(session, token, proxies_dict):
         )
         
         if assignment_response.status_code != 200:
+            print(f"{Fore.RED}Failed to get tasks. Status code: {assignment_response.status_code}")
             return False
 
-        assignments = assignment_response.json()['data']
+        response_data = assignment_response.json()
+        if not response_data or 'data' not in response_data:
+            print(f"{Fore.RED}Invalid response format: {response_data}")
+            return False
+
+        assignments = response_data['data']
+        if not assignments:
+            print(f"{Fore.YELLOW}No assignments found")
+            return False
         
         for assignment in assignments:
             if assignment['assignmentId'] in target_tasks:
-                do_response = session.post(
-                    'https://lightmining-api.taker.xyz/assignment/do',
-                    headers=request_headers,
-                    json={"assignmentId": assignment['assignmentId']},
-                    proxies=proxies_dict,
-                    timeout=None
-                )
+                try:
+                    do_response = session.post(
+                        'https://lightmining-api.taker.xyz/assignment/do',
+                        headers=request_headers,
+                        json={"assignmentId": assignment['assignmentId']},
+                        proxies=proxies_dict,
+                        timeout=None
+                    )
+                    
+                    response_data = do_response.json()
+                    if response_data.get('code') == 200:
+                        successful_tasks.append(assignment['title'])
+                        print(f"{Fore.GREEN}✓ {assignment['title']}")
+                    else:
+                        print(f"{Fore.RED}Task failed: {assignment['title']} - {response_data.get('message', 'Unknown error')}")
                 
-                if do_response.json().get('code') == 200:
-                    successful_tasks.append(assignment['title'])
-                    print(f"{Fore.GREEN}✓ {assignment['title']}")
+                except Exception as e:
+                    print(f"{Fore.RED}Error executing task {assignment['assignmentId']}: {str(e)}")
                 
                 time.sleep(random.uniform(1, 2))
         
-        mining_response = session.post(
-            'https://lightmining-api.taker.xyz/assignment/startMining',
-            headers=request_headers,
-            proxies=proxies_dict,
-            timeout=None
-        )
-        
-        if mining_response.json().get('code') == 200:
-            print(f"{Fore.GREEN}✓ Mining started successfully")
+        try:
+            mining_response = session.post(
+                'https://lightmining-api.taker.xyz/assignment/startMining',
+                headers=request_headers,
+                proxies=proxies_dict,
+                timeout=None
+            )
             
-        return True
+            response_data = mining_response.json()
+            if response_data.get('code') == 200:
+                print(f"{Fore.GREEN}✓ Mining started successfully")
+            else:
+                print(f"{Fore.RED}Mining start failed: {response_data.get('message', 'Unknown error')}")
+                
+        except Exception as e:
+            print(f"{Fore.RED}Error starting mining: {str(e)}")
+            
+        return len(successful_tasks) > 0
 
     except Exception as e:
         print(f"{Fore.RED}Error during task execution: {str(e)}")
@@ -146,7 +169,16 @@ def create_account(referral_code, account_number, total_accounts, proxies):
             timeout=None
         )
         
-        message = nonce_response.json()['data']['nonce']
+        if nonce_response.status_code != 200:
+            print(f"{Fore.RED}Failed to get nonce. Status code: {nonce_response.status_code}")
+            return False
+
+        response_data = nonce_response.json()
+        if not response_data or 'data' not in response_data or 'nonce' not in response_data['data']:
+            print(f"{Fore.RED}Invalid nonce response format: {response_data}")
+            return False
+
+        message = response_data['data']['nonce']
         signature = sign_message(private_key, message)
 
         login_response = session.post(
@@ -163,7 +195,12 @@ def create_account(referral_code, account_number, total_accounts, proxies):
         )
         
         if login_response.status_code == 200:
-            token = login_response.json()['data']['token']
+            response_data = login_response.json()
+            if not response_data or 'data' not in response_data or 'token' not in response_data['data']:
+                print(f"{Fore.RED}Invalid login response format: {response_data}")
+                return False
+
+            token = response_data['data']['token']
             print(format_console_output(timestamp, account_number, total_accounts, "SUCCESS", address, referral_code, Fore.GREEN))
             
             perform_tasks(session, token, proxies_dict)
@@ -172,6 +209,7 @@ def create_account(referral_code, account_number, total_accounts, proxies):
             return True
         else:
             print(format_console_output(timestamp, account_number, total_accounts, "LOGIN FAILED", address, referral_code, Fore.RED))
+            print(f"{Fore.RED}Login failed with status code: {login_response.status_code}")
             return False
 
     except Exception as e:
