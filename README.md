@@ -28,15 +28,17 @@ pkg install python python-pip git -y
 ```bash
 git clone https://github.com/im-hanzou/takerxyz-autoref
 ```
+### Requirements installation
 - Make sure you already in bot folder:
 ```bash
 cd takerxyz-autoref
 ```
-- Install requirements, Windows and Termux:
+#### Windows and Termux:
 ```bash
 pip install -r requirements.txt
 ```
-- Unix:
+> For termux error at installation, try [this](https://github.com/im-hanzou/takerxyz-autoref/issues/9)
+#### Unix:
 ```bash
 pip3 install -r requirements.txt
 ```
