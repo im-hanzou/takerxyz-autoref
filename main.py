@@ -7,8 +7,6 @@ from eth_account.messages import encode_defunct
 from datetime import datetime
 from fake_useragent import UserAgent
 from colorama import init, Fore, Style, Back
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 init(autoreset=True)
 
@@ -67,15 +65,7 @@ def save_account(private_key, address, referral_code):
         f.write(f"Referred to: {referral_code}\n")
         f.write("-" * 85 + "\n")
 
-def create_session():
-    session = requests.Session()
-    retry = Retry(connect=5, backoff_factor=1)
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-    return session
-
-def perform_tasks(session, token, proxies_dict):
+def perform_tasks(token, proxies_dict):
     print(f"{Fore.CYAN}Starting tasks for account...")
     target_tasks = [4, 5, 6, 13, 15]
     successful_tasks = []
@@ -83,7 +73,7 @@ def perform_tasks(session, token, proxies_dict):
     try:
         request_headers = get_headers()
         request_headers['Authorization'] = f'Bearer {token}'
-        assignment_response = session.post(
+        assignment_response = requests.post(
             'https://lightmining-api.taker.xyz/assignment/list',
             headers=request_headers,
             proxies=proxies_dict,
@@ -107,7 +97,7 @@ def perform_tasks(session, token, proxies_dict):
         for assignment in assignments:
             if assignment['assignmentId'] in target_tasks:
                 try:
-                    do_response = session.post(
+                    do_response = requests.post(
                         'https://lightmining-api.taker.xyz/assignment/do',
                         headers=request_headers,
                         json={"assignmentId": assignment['assignmentId']},
@@ -128,7 +118,7 @@ def perform_tasks(session, token, proxies_dict):
                 time.sleep(random.uniform(1, 2))
         
         try:
-            mining_response = session.post(
+            mining_response = requests.post(
                 'https://lightmining-api.taker.xyz/assignment/startMining',
                 headers=request_headers,
                 proxies=proxies_dict,
@@ -157,11 +147,9 @@ def create_account(referral_code, account_number, total_accounts, proxies):
     request_headers = get_headers()
     proxy = get_random_proxy(proxies)
     proxies_dict = {'http': proxy, 'https': proxy} if proxy else None
-    
-    session = create_session()
 
     try:
-        nonce_response = session.post(
+        nonce_response = requests.post(
             'https://lightmining-api.taker.xyz/wallet/generateNonce',
             headers=request_headers,
             json={"walletAddress": address},
@@ -181,7 +169,7 @@ def create_account(referral_code, account_number, total_accounts, proxies):
         message = response_data['data']['nonce']
         signature = sign_message(private_key, message)
 
-        login_response = session.post(
+        login_response = requests.post(
             'https://lightmining-api.taker.xyz/wallet/login',
             headers=request_headers,
             json={
@@ -203,7 +191,7 @@ def create_account(referral_code, account_number, total_accounts, proxies):
             token = response_data['data']['token']
             print(format_console_output(timestamp, account_number, total_accounts, "SUCCESS", address, referral_code, Fore.GREEN))
             
-            perform_tasks(session, token, proxies_dict)
+            perform_tasks(token, proxies_dict)
             save_account(private_key, address, referral_code)
             print(f"{Fore.CYAN}Processing next account...{Style.RESET_ALL}")
             return True
