@@ -3,4 +3,3 @@ web3
 eth-account
 fake-useragent
 colorama
-urllib3
