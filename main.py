@@ -191,7 +191,7 @@ def create_account(referral_code, account_number, total_accounts, proxies):
             token = response_data['data']['token']
             print(format_console_output(timestamp, account_number, total_accounts, "SUCCESS", address, referral_code, Fore.GREEN))
             
-            perform_tasks(token, proxies_dict)
+            #perform_tasks(token, proxies_dict)
             save_account(private_key, address, referral_code)
             print(f"{Fore.CYAN}Processing next account...{Style.RESET_ALL}")
             return True
