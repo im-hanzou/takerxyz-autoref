@@ -37,7 +37,7 @@ cd takerxyz-autoref
 ```bash
 pip install -r requirements.txt
 ```
-> For termux error at installation, try [this](https://github.com/im-hanzou/takerxyz-autoref/issues/9)
+> For termux error at installation, try [this](https://github.com/im-hanzou/takerxyz-autoref/issues/9), another error [here](https://github.com/im-hanzou/dawn-autoref/issues/14)
 #### Unix:
 ```bash
 pip3 install -r requirements.txt
